@@ -1,0 +1,226 @@
+---
+title: "Machine Learning 1"
+author: "Soobin (PID:A15201229)"
+date: "2/10/2022"
+output: pdf_document
+---
+
+# First up kmeans()
+
+Demo of using kmeans() function in base R. First make up some data with a known structure.
+```{r}
+tmp <- c( rnorm(30, -3), rnorm(30, 3) )
+x <- cbind(x = tmp, y = rev(tmp))
+plot(x)
+```
+
+Now we have some made up data in 'x' let's see how kmeans works with this data
+```{r}
+# k means algorithm with 2 centers and run 20 times
+k <- kmeans(x, centers = 2, nstart = 20)
+k
+```
+
+> Q. How many points are in each cluster?
+
+```{r}
+k$size
+```
+
+> Q. How do we get to cluster membership/assignment?
+
+```{r}
+k$cluster
+```
+
+> Q. What about cluster centers?
+
+```{r}
+k$centers
+```
+
+Now we got to the main results let's use them to plot our data with the kmeans result
+
+```{r}
+plot(x, col=k$cluster)
+
+# cluster centers
+points(k$centers, col="blue", pch=15)
+```
+
+## Now for Hierarchical Clustering
+
+We will cluster the same data 'x' with the 'hclust()'. In this case, 'hclust()' requires a distance matrix as input. 
+
+```{r}
+hc <- hclust( dist(x) )
+hc
+```
+
+Let's plot our hclust result.
+```{r}
+plot(hc)
+```
+
+To get our cluster membership vector we need to "cut" the tree with the 'cutree()'.
+```{r}
+grps <- cutree(hc, h=8)
+grps
+```
+
+Now plot our data with the hclust() results.
+```{r}
+plot(x, col=grps)
+```
+
+# Principal Component Analysis (PCA)
+
+## PCA of UK food data
+
+Read data from website and try a few visualizations.
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url, row.names=1)
+x
+```
+
+> Q1. How many rows and columns are in your new data frame named x? What R functions could you use to answer this questions?
+
+There is 17 rows and 4 columns. There would be 5 columns if you did not state 'row.names=1 '. I would use dim function to answer this question.
+```{r}
+dim(x)
+```
+
+### Checking your data
+```{r}
+head(x)
+```
+
+> Q2. Which approach to solving the ‘row-names problem’ mentioned above do you prefer and why? Is one approach more robust than another under certain circumstances?
+
+I prefer to set 'row.names=1' of read.csv() rather than following the method below. The method below will constantly reset the first column to take the row names so we will lose our data everytime the following code is run.
+```{r}
+# rownames(x) <- x[,1]
+# x <- x[,-1]
+# head(x)
+```
+
+
+### Spotting major differences and trends
+
+```{r}
+cols <- rainbow( nrow(x) )
+barplot( as.matrix(x), col=cols, beside=TRUE )
+```
+
+> Q3: Changing what optional argument in the above barplot() function results in the following plot?
+
+Chaning 'besides=T' of barplot() to 'besides=F' results in the following plot.
+
+```{r}
+barplot( as.matrix(x), col=cols, beside=FALSE )
+```
+
+
+```{r}
+pairs(x, col=cols)
+```
+
+> (no Q4) Q5: Generating all pairwise plots may help somewhat. Can you make sense of the following code and resulting figure? What does it mean if a given point lies on the diagonal for a given plot?
+
+Each plot is comparing the food consumption between two countries. Depending on the location of the pairwise plot, the x-axis and the y-axis can change. If a point lies above the diagonal, this means that the point (specific food) is consumed more in the y-axis country than in the x-axis country. This is vise versa when the point lies below the diagonal.
+
+> Q6. What is the main differences between N. Ireland and the other countries of the UK in terms of this data-set?
+
+The blue point and the green point are the main differences between N. Ireland and other countries of the UK. The blue point (likely fresh potatoes) indicate that N. Ireland consumes more than other countries, while the green point (likely alcoholic drinks) indicate that N. Ireland consumes less than other countries.
+
+
+### PCA to the rescue!!
+The main base R PCA function is called 'prcomp()' and we will need it the transpose of our input data!
+```{r}
+pca <-  prcomp( t(x) )
+pca
+```
+
+There is a nice summary of how well PCA is doing.
+```{r}
+summary(pca)
+```
+
+```{r}
+attributes(pca)
+```
+
+To make our new PCA plot (a.k.a. PCA score plot) we access 'pca$x'.
+
+> Q7. Complete the code below to generate a plot of PC1 vs PC2. The second line adds text labels over the data points.
+
+```{r}
+plot( pca$x[, 1], pca$x[, 2], xlab = "PC1", ylab = "PC2", xlim=c(-270,500) )
+text( pca$x[, 1], pca$x[, 2], colnames(x))
+```
+
+> Q8. Customize your plot so that the colors of the country names match the colors in our UK and Ireland map and table at start of this document.
+
+```{r}
+country_cols <- c("orange", "red", "blue", "green")
+plot( pca$x[, 1], pca$x[, 2], xlab = "PC1", ylab = "PC2", xlim=c(-270,500) )
+text( pca$x[, 1], pca$x[, 2], colnames(x), col=country_cols)
+```
+
+> Q9: Generate a similar ‘loadings plot’ for PC2. What two food groups feature prominantely and what does PC2 maninly tell us about?
+
+Soft_drink has the largest negative score, and fresh_potatoes has the largest positive loading scores. Fresh_potatoes and soft_drink contribute the most in PC2 variance. 
+
+```{r}
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,2], las=2 )
+```
+
+## PCA of RNA-seq data
+
+Read in data from website
+
+```{r}
+url2 <- "https://tinyurl.com/expression-CSV"
+rna.data <- read.csv(url2, row.names=1)
+head(rna.data)
+```
+> Q10: How many genes and samples are in this data set?
+
+There are 100 genes and 10 samples in this data set.
+
+```{r}
+dim(rna.data)
+```
+
+```{r}
+pca1 <- prcomp( t(rna.data) )
+summary(pca1)
+```
+
+Do our PCA plot of this RNA-Seq data.
+```{r}
+plot(pca1$x[,1], pca1$x[,2], xlab="PC1", ylab="PC2")
+```
+
+```{r}
+plot(pca1$x[,1], pca1$x[,2], xlab="PC1", ylab="PC2")
+text(pca1$x[,1], pca1$x[,2], colnames(rna.data))
+```
+
+### Optional: Gene loadings
+What measurements(genes) contribute the most to PC1 in either direction (+ or -)?
+```{r}
+loading_scores <- pca1$rotation[,1]
+
+# Find the top 10 measurements (genes) that contribute most to PC1 in either direction
+gene_scores <- abs(loading_scores)
+gene_scores_ranked <- sort(gene_scores, decreasing = TRUE)
+
+# Show the name of the top 10 genes
+top_10_genes <- names(gene_scores_ranked[1:10])
+top_10_genes
+```
+
